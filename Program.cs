@@ -6,31 +6,28 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-
 builder.Services.AddEndpointsApiExplorer();
 
-// ? JWT için doðru Swagger yapýlandýrmasý
-builder.Services.AddSwaggerGen(c =>
+builder.Services.AddSwaggerGen(options =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo
+    options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Akilli Ev API",
-        Version = "v1"
+        Title = "Akilli Ev Otomasyonu API",
+        Version = "v1",
+        Description = "Akilli Ev Otomasyonu Web API"
     });
 
-    // JWT Bearer Security Definition
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
-        Description = "JWT Authorization header using the Bearer scheme. Örnek: \"Bearer {token}\"",
+        Description = "JWT Authorization header using the Bearer scheme.\n\nÖrnek: \"Bearer {token}\"",
         Name = "Authorization",
-        Type = SecuritySchemeType.Http,     // ? Bu önemli (ApiKey deðil)
+        Type = SecuritySchemeType.Http,
         Scheme = "Bearer",
         BearerFormat = "JWT"
     });
 
-    // Tüm endpoint'lere güvenlik gereksinimi ekle (global)
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
@@ -41,12 +38,15 @@ builder.Services.AddSwaggerGen(c =>
                     Id = "Bearer"
                 }
             },
-            new string[] { }
+            Array.Empty<string>()
         }
     });
 });
 
-var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "SuperSecretKey123!"); // Config'den al, yoksa default koy
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? "BuCokGucluBirSecretKeyOlmalýEnAz32Karakter123!";
+
+var key = Encoding.UTF8.GetBytes(jwtKey);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -67,17 +67,17 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// Middleware sýrasý önemli!
 app.UseSwagger();
-app.UseSwaggerUI(c =>
+app.UseSwaggerUI(options =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Akilli Ev API v1");
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Akilli Ev API v1");
+    options.RoutePrefix = string.Empty; 
 });
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication();   // ? Authentication önce
-app.UseAuthorization();    // ? Authorization sonra
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 
